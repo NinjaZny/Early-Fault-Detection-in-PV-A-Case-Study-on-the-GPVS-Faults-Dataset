@@ -44,28 +44,26 @@ Please download it directly from the official source:
 2. Extract the files after download.
 3. Place the extracted `.mat` files into the `data/` folder of this project.
 
-### Expected structure after extraction:
-data/
- └── GPVS-Faults/
-     ├── F0L.mat
-     ├── F0M.mat
-     ├── F1L.mat
-     ├── F1M.mat
-     ├── ...
-     └── F7M.mat
+### Expected Dataset Structure
+- `data/`
+  - `GPVS-Faults/`
+    - `F0L.mat`
+    - `F0M.mat`
+    - ...
+    - `F7M.mat`
 
-
-
+---
 
 ## Project Structure
-.
-├── data/             # Dataset storage (large files, ignored in Git)
-├── src/              # Core source code (models, training, evaluation, utils)
-├── notebooks/        # Jupyter notebooks for experiments and visualization
-├── outputs/          # Training outputs (logs, checkpoints, metrics, ignored in Git)
-├── requirements.txt  # Python dependencies list
-├── .gitignore        # Git ignore rules (exclude data, outputs, temp files)
-└── README.md         # Project documentation and usage guide
+- `data/` — Dataset storage (ignored in Git)
+- `src/` — Core source code (models, training, evaluation)
+- `notebooks/` — Jupyter notebooks for experiments and visualization
+- `outputs/` — Training outputs (ignored in Git)
+- `requirements.txt` — Python dependencies list
+- `.gitignore` — Git ignore rules
+- `ISCF_ClarificationNote.pdf`
+- `README.md` — Project documentation
+
 
 
 
