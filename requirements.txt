@@ -1,0 +1,15 @@
+numpy>=1.23
+pandas>=1.5
+scikit-learn>=1.2
+scipy>=1.10
+tqdm>=4.65
+matplotlib>=3.7
+seaborn>=0.12
+pyyaml>=6.0
+
+# PyTorch (CUDA 12.1 build)
+torch==2.3.1+cu121
+torchvision==0.18.1+cu121
+torchaudio==2.3.1+cu121
+# Tell pip where to find PyTorch CUDA wheels
+--extra-index-url https://download.pytorch.org/whl/cu121
