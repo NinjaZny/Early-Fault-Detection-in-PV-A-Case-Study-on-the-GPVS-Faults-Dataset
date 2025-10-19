@@ -1,0 +1,8 @@
+# Data and model results (do not upload to GitHub)
+data/
+outputs/
+.conda/
+
+# Python cache
+__pycache__/
+*.pyc
