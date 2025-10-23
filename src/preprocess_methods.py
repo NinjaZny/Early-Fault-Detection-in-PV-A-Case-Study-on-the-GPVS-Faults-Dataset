@@ -167,7 +167,7 @@ def apply_pca_safe(df, sensors, feature_selection, n_components_requested=4, lab
 
         elif feature_selection == 'kernelpca':
             # print("Using KernelPCA with RBF kernel.")
-            idx = np.random.choice(X.shape[0], 50000, replace=False) # only choose 50000 samples to fit to avoid memory issue
+            idx = np.random.choice(X.shape[0], 3000, replace=False) # only choose 3000 samples to fit to avoid memory issue
             pca = KernelPCA(n_components=n_comp, kernel='rbf', gamma=0.1) # hyperparameter kernel, gamma can be tuned
             pca.fit(X[idx])
             Xp = pca.transform(X)
@@ -189,8 +189,9 @@ def apply_pca_safe(df, sensors, feature_selection, n_components_requested=4, lab
 def sliding_windows(arr, window_len, stride=None):
 
     if hasattr(arr, "columns") and hasattr(arr, "to_numpy") and "label" in getattr(arr, "columns", []):
+        drop_cols = [c for c in ["label", "Time"] if c in arr.columns]
         labels_seq = arr["label"].to_numpy()
-        feats = arr.drop(columns=["label"]).to_numpy()
+        feats = arr.drop(columns=drop_cols).to_numpy()
     else:
         a = np.asarray(arr)
         if a.ndim < 2:

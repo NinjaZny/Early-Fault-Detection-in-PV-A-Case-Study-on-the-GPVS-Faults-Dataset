@@ -11,10 +11,10 @@ import seaborn as sns
 import utils
 import preprocess_methods
 
-OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
-NORMALIZE_METHOD = 'robust' # 'none', 'zscore', 'minmax', 'robust'
+OUTLIER_METHOD = 'none' # options: 'none', 'IQR'
+NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
-FEATURE_SELECTION = 'robustpca' # 'none', 'pca', 'robustpca', 'kernelpca'
+FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
 
 RANDOM_SEED = 42
 
@@ -25,10 +25,10 @@ FS = 10000
 BUTTER_ORDER = 4
 MA_WINDOW = 7
 
-PCA_COMPONENTS = 4
+PCA_COMPONENTS = 8
 
 WINDOW_LEN = 200
-STRIDE = 100
+STRIDE = 15
 
 
 def _save_or_append(array: np.ndarray, path: str):
@@ -166,12 +166,12 @@ def preprocess_data(df, columns, sensors,
     # Feature selection
     if feature_selection == 'pca' or feature_selection == 'robustpca' or feature_selection == 'kernelpca':
         df_extracted, pca, n_comp = preprocess_methods.apply_pca_safe(df_filtered, sensors, feature_selection, n_components_requested=PCA_COMPONENTS, label_str=df['label'][0], pca_map=pca_map)
+        utils.compare_data_pca(df, df_extracted, sensors, n_comp, range(0, 1000), f"feature-selection_{df['label'][0]}")
     elif feature_selection == 'none':
         df_extracted = df_filtered
+        pca = None
     else:
         raise ValueError(f"Unknown feature selection method: {feature_selection}")
-    # utils.compare_data_pca(df, df_extracted, sensors, n_comp, range(0, 1000), f"feature-selection_{feature_selection}_{df['label'][0]}")
-    utils.compare_data_pca(df, df_extracted, sensors, n_comp, range(0, 1000), f"feature-selection_{df['label'][0]}")
 
     # Ensure all original sensor columns are present in processed DataFrame
     for col in sensors:
@@ -203,10 +203,6 @@ def preprocess_all_data():
     le.fit(class_names)
 
     columns = ["Time","Ipv","Vpv","Vdc","ia","ib","ic","va","vb","vc","Iabc","If","Vabc","Vf","label"]
-
-    all_windows_list = []
-    all_labels = []
-    meta = []
 
     pca_map = {}
 

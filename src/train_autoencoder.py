@@ -2,14 +2,17 @@ import os
 import numpy as np
 import torch
 from torch import nn, optim
+from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau, CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # Global training settings
 BATCH_SIZE = 64
-EPOCHS = 50
+EPOCHS = 400
 LEARNING_RATE = 1e-3
-EARLY_STOPPING_PATIENCE = 5
+EARLY_STOPPING_PATIENCE = 20
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -17,7 +20,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # - 2 encoder layers + 2 decoder layers
 # - symmetric structure with decreasing and then increasing hidden sizes
 class LSTMAutoencoder(nn.Module):
-    def __init__(self, input_dim=15, seq_len=200, enc1_dim=64, enc2_dim=32, latent_dim=16):
+    def __init__(self, input_dim=15, seq_len=200, enc1_dim=128, enc2_dim=64, latent_dim=32):
         super().__init__()
         
         # Encoder part
@@ -51,7 +54,7 @@ class LSTMAutoencoder(nn.Module):
         return dec_out2
 
 
-def train_lstm_ae(pipeline, data_dir="data/", artifacts_dir="artifacts/"):
+def train_lstm_ae(pipeline, data_dir="data/processed/", artifacts_dir="artifacts/"):
     # Load datasets from .npy files
     x_train_path = os.path.join(data_dir, f"X_train_LPPT_{pipeline}.npy")
     x_val_path = os.path.join(data_dir, f"X_val_LPPT_{pipeline}.npy")
@@ -76,6 +79,17 @@ def train_lstm_ae(pipeline, data_dir="data/", artifacts_dir="artifacts/"):
     model = LSTMAutoencoder(input_dim=input_dim, seq_len=seq_len).to(DEVICE)
 
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    # methods of learning rate scheduling to try: (may not be useful because of the size of model)
+    # scheduler = CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-5)
+    # scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, threshold=1e-3, cooldown=3, min_lr=1e-5, verbose=True)
+    # scheduler = CosineAnnealingWarmRestarts(
+    #     optimizer,
+    #     T_0=5, # first restart epochs
+    #     T_mult=2, # multiply T_i by T_mult after a restart
+    #     eta_min=1e-5
+    # )
+    
     loss_fn = nn.MSELoss()
 
     best_val_loss = float("inf")
@@ -118,6 +132,11 @@ def train_lstm_ae(pipeline, data_dir="data/", artifacts_dir="artifacts/"):
 
         val_loss = np.mean(val_losses)
 
+        # scheduler.step()
+        # scheduler.step(val_losses[-1])
+        current_lr = optimizer.param_groups[0]['lr']
+        print(current_lr)
+
         # Write to log
         with open(log_path, "a") as log_file:
             log_file.write(f"{epoch},{train_loss},{val_loss}\n")
@@ -129,8 +148,23 @@ def train_lstm_ae(pipeline, data_dir="data/", artifacts_dir="artifacts/"):
             best_val_loss = val_loss
             patience_counter = 0
             torch.save(model.state_dict(), os.path.join(artifacts_dir, f"LSTM-AE__{pipeline}", "model.ckpt"))
+            print("-----------------------Model checkpoint saved-----------------------")
         else:
             patience_counter += 1
             if patience_counter >= EARLY_STOPPING_PATIENCE:
                 print("Early stopping triggered")
                 break
+    
+    # After training loop
+    log_df = pd.read_csv(log_path)
+
+    plt.figure(figsize=(8,5))
+    plt.plot(log_df["epoch"], log_df["train_loss"], label="Train Loss")
+    plt.plot(log_df["epoch"], log_df["val_loss"], label="Val Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title(f"Training Curve - {pipeline}")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(artifacts_dir, f"LSTM-AE__{pipeline}", "loss_curve.png"), dpi=200)
+    plt.close()
