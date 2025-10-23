@@ -12,7 +12,7 @@ import utils
 import preprocess_methods
 
 OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
-NORMALIZE_METHOD = 'zscore' # 'none', 'zscore', 'minmax', 'robust'
+NORMALIZE_METHOD = 'robust' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
 FEATURE_SELECTION = 'robustpca' # 'none', 'pca', 'robustpca', 'kernelpca'
 
@@ -28,7 +28,7 @@ MA_WINDOW = 7
 PCA_COMPONENTS = 4
 
 WINDOW_LEN = 200
-STRIDE = 15
+STRIDE = 100
 
 
 def _save_or_append(array: np.ndarray, path: str):
@@ -113,7 +113,7 @@ def save_processed_dataset(X: np.ndarray, Y: np.ndarray, label_str: str,
 
 def preprocess_data(df, columns, sensors,
                     outlier_method = OUTLIER_METHOD, 
-                    nomralize_method = NORMALIZE_METHOD, 
+                    normalize_method = NORMALIZE_METHOD, 
                     lowpass_filter = LOWPASS_FILTER, 
                     feature_selection = FEATURE_SELECTION,
                     pca_map = None
@@ -134,19 +134,22 @@ def preprocess_data(df, columns, sensors,
         pass
     else:
         raise ValueError(f"Unknown outlier method: {outlier_method}")
-    # utils.compare_data(df, df_corrected, sensors, range(0, 1000))
+    # utils.compare_data(df, df_corrected, sensors, range(0, 1000), f"oulier-removed_{outlier_method}_{df['label'][0]}")
+    utils.compare_data(df, df_corrected, sensors, range(0, 1000), f"oulier-removed_{df['label'][0]}")
 
     # Normalization
-    if nomralize_method == 'zscore':
+    if normalize_method == 'zscore':
         df_normalized = preprocess_methods.zscore_dataframe(df_corrected, sensors)
-    elif nomralize_method == 'minmax':
+    elif normalize_method == 'minmax':
         df_normalized = preprocess_methods.minmax_dataframe(df_corrected, sensors)
-    elif nomralize_method == 'robust':
+    elif normalize_method == 'robust':
         df_normalized = preprocess_methods.robust_dataframe(df_corrected, sensors)
-    elif nomralize_method == 'none':
+    elif normalize_method == 'none':
         df_normalized = df_corrected
     else:
-        raise ValueError(f"Unknown normalization method: {nomralize_method}")
+        raise ValueError(f"Unknown normalization method: {normalize_method}")
+    # utils.compare_data(df, df_normalized, sensors, range(0, 1000), f"normalized_{normalize_method}_{df['label'][0]}")
+    utils.compare_data(df, df_normalized, sensors, range(0, 1000), f"normalized_{df['label'][0]}")
     
     # Low-pass filtering
     if lowpass_filter == 'butterworth':
@@ -157,6 +160,8 @@ def preprocess_data(df, columns, sensors,
         df_filtered = df_normalized
     else:
         raise ValueError(f"Unknown low-pass filter method: {lowpass_filter}")
+    # utils.compare_data(df, df_filtered, sensors, range(0, 1000), f"filtered_{lowpass_filter}_{df['label'][0]}")
+    utils.compare_data(df, df_filtered, sensors, range(0, 1000), f"filtered_{df['label'][0]}")
 
     # Feature selection
     if feature_selection == 'pca' or feature_selection == 'robustpca' or feature_selection == 'kernelpca':
@@ -165,6 +170,8 @@ def preprocess_data(df, columns, sensors,
         df_extracted = df_filtered
     else:
         raise ValueError(f"Unknown feature selection method: {feature_selection}")
+    # utils.compare_data_pca(df, df_extracted, sensors, n_comp, range(0, 1000), f"feature-selection_{feature_selection}_{df['label'][0]}")
+    utils.compare_data_pca(df, df_extracted, sensors, n_comp, range(0, 1000), f"feature-selection_{df['label'][0]}")
 
     # Ensure all original sensor columns are present in processed DataFrame
     for col in sensors:
@@ -177,9 +184,7 @@ def preprocess_data(df, columns, sensors,
     return X, Y, pca
 
 
-
-if __name__ == "__main__":
-
+def preprocess_all_data():
     dataset_folder = 'data/GPVS-Faults'
     processed_data_folder = 'data/processed'
 

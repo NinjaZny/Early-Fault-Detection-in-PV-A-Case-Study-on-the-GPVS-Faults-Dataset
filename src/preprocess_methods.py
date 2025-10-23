@@ -66,6 +66,7 @@ def robust_series(x, eps=1e-8):
     q1 = np.percentile(x, 25)
     q3 = np.percentile(x, 75)
     iqr = q3 - q1
+    # print(f"robust_series: med={med}, IQR={iqr}")
     if iqr < eps:
         return x - med
     return (x - med) / iqr
