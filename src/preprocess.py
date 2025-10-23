@@ -14,7 +14,7 @@ import preprocess_methods
 OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
 NORMALIZE_METHOD = 'zscore' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
-FEATURE_SELECTION = 'pca' # 'none', 'pca'
+FEATURE_SELECTION = 'robustpca' # 'none', 'pca', 'robustpca', 'kernelpca'
 
 RANDOM_SEED = 42
 
@@ -159,8 +159,8 @@ def preprocess_data(df, columns, sensors,
         raise ValueError(f"Unknown low-pass filter method: {lowpass_filter}")
 
     # Feature selection
-    if feature_selection == 'pca':
-        df_extracted, pca, n_comp = preprocess_methods.apply_pca_safe(df_filtered, sensors, n_components_requested=PCA_COMPONENTS, label_str=df['label'][0], pca_map=pca_map)
+    if feature_selection == 'pca' or feature_selection == 'robustpca' or feature_selection == 'kernelpca':
+        df_extracted, pca, n_comp = preprocess_methods.apply_pca_safe(df_filtered, sensors, feature_selection, n_components_requested=PCA_COMPONENTS, label_str=df['label'][0], pca_map=pca_map)
     elif feature_selection == 'none':
         df_extracted = df_filtered
     else:

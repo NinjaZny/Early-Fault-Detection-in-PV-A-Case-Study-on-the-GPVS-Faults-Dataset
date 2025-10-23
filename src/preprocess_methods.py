@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, KernelPCA
 from scipy.signal import butter, sosfiltfilt
 
 
@@ -135,7 +135,7 @@ def moving_average_filter_dataframe(
 
 
 
-def apply_pca_safe(df, sensors, n_components_requested=4, label_str=None, pca_map=None):
+def apply_pca_safe(df, sensors, feature_selection, n_components_requested=4, label_str=None, pca_map=None):
     X = df[sensors].values
     X = np.asarray(X)
 
@@ -143,7 +143,7 @@ def apply_pca_safe(df, sensors, n_components_requested=4, label_str=None, pca_ma
     max_comp = min(n_samples, n_features)
     n_comp = max(1, min(int(n_components_requested), max_comp))
 
-    # If not F0, reuse provided PCA model
+    # Reuse PCA model for non-F0 data
     if label_str is not None and not label_str.startswith("F0"):
         print(f"Using PCA model calculated by: F0{label_str[-1]}")
         if label_str.endswith("L"):
@@ -153,13 +153,31 @@ def apply_pca_safe(df, sensors, n_components_requested=4, label_str=None, pca_ma
 
         if pca_model is None:
             raise ValueError("pca_model must be provided when label is not starting with 'F0'.")
+
         Xp = pca_model.transform(X)
-        n_comp = Xp.shape[1]  # ensure consistent
+        n_comp = Xp.shape[1]
         pca = None
+
     else:
-        # F0 => fit new PCA model
-        pca = PCA(n_components=n_comp)
-        Xp = pca.fit_transform(X)
+
+        if feature_selection == 'pca':
+            pca = PCA(n_components=n_comp)
+            Xp = pca.fit_transform(X)
+
+        elif feature_selection == 'kernelpca':
+            # print("Using KernelPCA with RBF kernel.")
+            idx = np.random.choice(X.shape[0], 50000, replace=False) # only choose 50000 samples to fit to avoid memory issue
+            pca = KernelPCA(n_components=n_comp, kernel='rbf', gamma=0.1) # hyperparameter kernel, gamma can be tuned
+            pca.fit(X[idx])
+            Xp = pca.transform(X)
+
+        elif feature_selection == 'robustpca':
+            # print("Using RobustPCA.")
+            import rpca
+            pca = rpca.RobustPCA(n_components=n_comp) # can be tuned: max_iter, tol, gamma, etc.
+            pca.fit(X)
+            Xp = pca.transform(X)
+            n_comp = Xp.shape[1]
 
     pca_cols = [f"PCA_{i+1}" for i in range(n_comp)]
     Xp_df = pd.DataFrame(Xp, columns=pca_cols, index=df.index)
