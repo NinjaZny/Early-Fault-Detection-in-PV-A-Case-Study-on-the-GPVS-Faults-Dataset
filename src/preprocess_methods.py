@@ -37,7 +37,7 @@ def zscore_series(x, eps=1e-8):
     if sigma < eps:
         return x - mu
     return (x - mu) / sigma
-
+ 
 def zscore_dataframe(df, cols):
     out = df.copy()
     for c in cols:

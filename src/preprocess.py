@@ -12,7 +12,7 @@ import utils
 import preprocess_methods
 
 OUTLIER_METHOD = 'none' # options: 'none', 'IQR'
-NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
+NORMALIZE_METHOD = 'zscore' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
 FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
 
@@ -20,9 +20,9 @@ RANDOM_SEED = 42
 
 OUTLIER_WINDOW = 11
 
-CUTOFF = 4000
+CUTOFF = 300
 FS = 10000
-BUTTER_ORDER = 4
+BUTTER_ORDER = 2
 MA_WINDOW = 7
 
 PCA_COMPONENTS = 8
@@ -135,7 +135,7 @@ def preprocess_data(df, columns, sensors,
     else:
         raise ValueError(f"Unknown outlier method: {outlier_method}")
     # utils.compare_data(df, df_corrected, sensors, range(0, 1000), f"oulier-removed_{outlier_method}_{df['label'][0]}")
-    utils.compare_data(df, df_corrected, sensors, range(0, 1000), f"oulier-removed_{df['label'][0]}")
+    utils.compare_data(df, df_corrected, sensors, plotname = f"oulier-removed_{df['label'][0]}")
 
     # Normalization
     if normalize_method == 'zscore':
@@ -149,7 +149,7 @@ def preprocess_data(df, columns, sensors,
     else:
         raise ValueError(f"Unknown normalization method: {normalize_method}")
     # utils.compare_data(df, df_normalized, sensors, range(0, 1000), f"normalized_{normalize_method}_{df['label'][0]}")
-    utils.compare_data(df, df_normalized, sensors, range(0, 1000), f"normalized_{df['label'][0]}")
+    utils.compare_data(df, df_normalized, sensors, plotname = f"normalized_{df['label'][0]}")
     
     # Low-pass filtering
     if lowpass_filter == 'butterworth':
@@ -161,12 +161,12 @@ def preprocess_data(df, columns, sensors,
     else:
         raise ValueError(f"Unknown low-pass filter method: {lowpass_filter}")
     # utils.compare_data(df, df_filtered, sensors, range(0, 1000), f"filtered_{lowpass_filter}_{df['label'][0]}")
-    utils.compare_data(df, df_filtered, sensors, range(0, 1000), f"filtered_{df['label'][0]}")
+    utils.compare_data(df, df_filtered, sensors, plotname = f"filtered_{df['label'][0]}")
 
     # Feature selection
     if feature_selection == 'pca' or feature_selection == 'robustpca' or feature_selection == 'kernelpca':
         df_extracted, pca, n_comp = preprocess_methods.apply_pca_safe(df_filtered, sensors, feature_selection, n_components_requested=PCA_COMPONENTS, label_str=df['label'][0], pca_map=pca_map)
-        utils.compare_data_pca(df, df_extracted, sensors, n_comp, range(0, 1000), f"feature-selection_{df['label'][0]}")
+        utils.compare_data_pca(df, df_extracted, sensors, n_comp, plotname = f"feature-selection_{df['label'][0]}")
     elif feature_selection == 'none':
         df_extracted = df_filtered
         pca = None
