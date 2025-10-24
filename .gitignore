@@ -1,8 +1,14 @@
 # Data and model results (do not upload to GitHub)
 data/
 outputs/
+artifacts/
+
 .conda/
 
 # Python cache
 __pycache__/
 *.pyc
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
