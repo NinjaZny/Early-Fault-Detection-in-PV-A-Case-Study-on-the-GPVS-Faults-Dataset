@@ -12,7 +12,7 @@ import utils
 import preprocess_methods
 
 OUTLIER_METHOD = 'none' # options: 'none', 'IQR'
-NORMALIZE_METHOD = 'zscore' # 'none', 'zscore', 'minmax', 'robust'
+NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
 FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
 
@@ -187,6 +187,7 @@ def preprocess_data(df, columns, sensors,
 def preprocess_all_data():
     dataset_folder = 'data/GPVS-Faults'
     processed_data_folder = 'data/processed'
+    plot_folder = 'data/plot'
 
     os.makedirs(processed_data_folder, exist_ok=True)
     # delete all files in processed_data_folder
@@ -194,6 +195,8 @@ def preprocess_all_data():
         fp = os.path.join(processed_data_folder, f)
         if os.path.isfile(fp):
             os.remove(fp)
+
+    os.makedirs(plot_folder, exist_ok=True)
 
     filenames = sorted([f for f in os.listdir(dataset_folder) if f.endswith('.mat')])
 
