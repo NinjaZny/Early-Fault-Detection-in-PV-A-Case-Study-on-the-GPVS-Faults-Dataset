@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 # Global training settings
 BATCH_SIZE = 64
-EPOCHS = 400
+EPOCHS = 400 # Models in artifact where trained on 100 epoches. Organize to re-do the training on more epoches
 LEARNING_RATE = 1e-3
 EARLY_STOPPING_PATIENCE = 20
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

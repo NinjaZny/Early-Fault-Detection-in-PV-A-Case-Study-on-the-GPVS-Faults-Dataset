@@ -12,7 +12,7 @@ import utils
 import preprocess_methods
 
 OUTLIER_METHOD = 'none' # options: 'none', 'IQR'
-NORMALIZE_METHOD = 'zscore' # 'none', 'zscore', 'minmax', 'robust'
+NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
 FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
 
@@ -57,13 +57,6 @@ def _split_indices(n: int, seed: int, ratios=(0.8, 0.1, 0.1)):
 
 def save_processed_dataset(X: np.ndarray, Y: np.ndarray, label_str: str,
                            processed_dir: str = "data/processed"):
-    """
-    Save processed dataset based on label format:
-    - If label starts with 'F0': split into train/val/test (0.8/0.1/0.1) then append/save
-    - Otherwise: append all data into test split only
-    - Group name is derived from last char: L -> LPPT, M -> MPPT
-    """
-    # Group determination from final letter
     if label_str.endswith("L"):
         group = "LPPT"
     elif label_str.endswith("M"):
@@ -74,41 +67,49 @@ def save_processed_dataset(X: np.ndarray, Y: np.ndarray, label_str: str,
     # Construct filename suffix (inline as requested)
     tail = f"{OUTLIER_METHOD}_{NORMALIZE_METHOD}_{LOWPASS_FILTER}_{FEATURE_SELECTION}_Slidingwindow_.npy"
 
-    # Ensure Y matches X along first dimension
+    # === VALIDATE Y SHAPE ===
     if Y.ndim == 0:
         Y = np.full((X.shape[0],), Y)
-    elif not ((Y.ndim == 1 and Y.shape[0] == X.shape[0]) or
-              (Y.ndim == 2 and Y.shape[0] == X.shape[0])):
-        raise ValueError(f"Y shape {Y.shape} does not match X {X.shape} on first dimension.")
+    if Y.shape[0] != X.shape[0]:
+        raise ValueError(f"Y shape {Y.shape} does not match X {X.shape}")
 
     if label_str.startswith("F0"):
-        # Supervised dataset: split into train/val/test
         idx_tr, idx_va, idx_te = _split_indices(X.shape[0], RANDOM_SEED, (0.8, 0.1, 0.1))
 
         paths = {
-            "train": ( os.path.join(processed_dir, f"X_train_{group}_{tail}"),
-                       os.path.join(processed_dir, f"Y_train_{group}_{tail}") ),
-            "val":   ( os.path.join(processed_dir, f"X_val_{group}_{tail}"),
-                       os.path.join(processed_dir, f"Y_val_{group}_{tail}") ),
-            "test":  ( os.path.join(processed_dir, f"X_test_{group}_{tail}"),
-                       os.path.join(processed_dir, f"Y_test_{group}_{tail}") ),
+            "train": (f"X_train_{group}_{tail}", f"Y_train_{group}_{tail}"),
+            "val": (f"X_val_{group}_{tail}", f"Y_val_{group}_{tail}"),
+            "test": (f"X_test_{group}_{tail}", f"Y_test_{group}_{tail}"),
         }
 
         for split, idx in (("train", idx_tr), ("val", idx_va), ("test", idx_te)):
-            _save_or_append(X[idx], paths[split][0])
-            _save_or_append(Y[idx], paths[split][1])
-        print(f"[save_processed_dataset] F0 dataset saved -> group={group}, "
-              f"{X.shape[0]} samples split into train/val/test.")
+            x_path = os.path.join(processed_dir, paths[split][0])
+            y_path = os.path.join(processed_dir, paths[split][1])
+            _save_or_append(X[idx], x_path)
+            _save_or_append(Y[idx], y_path)
+
+        print(f"[save] F0 {group}: {X.shape[0]} samples → train/val/test split")
 
     else:
-        # Non-F0 => append to test only (unlabeled / unseen data)
-        x_path = os.path.join(processed_dir, f"X_test_{group}_{tail}")
-        y_path = os.path.join(processed_dir, f"Y_test_{group}_{tail}")
-        _save_or_append(X, x_path)
-        _save_or_append(Y, y_path)
-        print(f"[save_processed_dataset] Non-F0 dataset appended -> group={group}, "
-              f"{X.shape[0]} samples appended to test.")
+        # FAULT DATA: SAVE EACH FAULT IN A SEPARATE FILE
+        # OLD CODE (merged all faults — REMOVED):
+        # x_path = os.path.join(processed_dir, f"X_test_{group}_{tail}")
+        # _save_or_append(X, x_path)
+        #
+        # WHY REMOVED?
+        # - Mixing F1L + F2L → cannot evaluate per-fault performance
+        # - Cannot compute lead time or early detection
 
+
+        #One file per fault → e.g., X_test_F1L_LPPT_...
+        x_path = os.path.join(processed_dir, f"X_test_{label_str}_{group}_{tail}")
+        y_path = os.path.join(processed_dir, f"Y_test_{label_str}_{group}_{tail}")
+
+        # Save directly (no append) → each fault = one file
+        np.save(x_path, X)
+        np.save(y_path, Y)
+
+        print(f"[save] FAULT {label_str} ({group}): {X.shape} → {os.path.basename(x_path)}")
 
 
 def preprocess_data(df, columns, sensors,
@@ -174,9 +175,10 @@ def preprocess_data(df, columns, sensors,
         raise ValueError(f"Unknown feature selection method: {feature_selection}")
 
     # Ensure all original sensor columns are present in processed DataFrame
-    for col in sensors:
-        if col not in columns:
-            df_extracted[col] = df[col]
+    if feature_selection == 'none':
+        for col in sensors:
+            if col in df.columns:
+                df_extracted[col] = df[col]
 
     # Sliding window
     X, Y = preprocess_methods.sliding_windows(df_extracted, window_len=WINDOW_LEN, stride=STRIDE)
@@ -185,7 +187,7 @@ def preprocess_data(df, columns, sensors,
 
 
 def preprocess_all_data():
-    dataset_folder = 'data/GPVS-Faults'
+    dataset_folder = '../data/GPVS-Faults'
     processed_data_folder = 'data/processed'
 
     os.makedirs(processed_data_folder, exist_ok=True)
@@ -224,15 +226,15 @@ def preprocess_all_data():
 
     for fn in filenames:
         label_str = fn[:3]
-        if label_str.startswith("F0") and label_str[-1] in ("L", "M"):
+        if label_str.startswith("F0"):
             continue
-        print(f"Processing file: {fn}")
+        print(f"Processing fault file: {fn}")
         path = os.path.join(dataset_folder, fn)
         df = utils.read_mat_file(path, label=label_str)
         sensors = [c for c in columns if c in df.columns and c != 'Time' and c != 'label']
-
-        X, Y, _ = preprocess_data(df, columns, sensors, pca_map=pca_map)
-        save_processed_dataset(X, Y, label_str)
+        key = "LPPT" if label_str.endswith("L") else "MPPT"
+        X, Y, _ = preprocess_data(df, columns, sensors, pca_map=pca_map.get(key))
+        save_processed_dataset(X, Y, label_str)  # ← Saves F1L, F2M, etc. separately
 
     for f in os.listdir(processed_data_folder):
         if f.endswith(".npy"):

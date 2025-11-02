@@ -1,7 +1,7 @@
-# Data and model results (do not upload to GitHub)
+# Data and result (do not upload to GitHub)
 data/
 outputs/
-artifacts/
+results/
 
 .conda/
 
