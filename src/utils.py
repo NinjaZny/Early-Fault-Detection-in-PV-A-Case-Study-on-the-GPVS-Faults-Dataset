@@ -45,7 +45,7 @@ def read_mat_file(path, label=None):
         if label is not None:
             df["label"] = label
         return df
-
+    
 def compare_data(df, df_processed, sensors, idx=range(30000, 30200), plotname="plot",
                  nrows=5, ncols=3, figsize=(14, 7)):
     cols = [c for c in sensors if c in df.columns and c in df_processed.columns]
@@ -86,6 +86,7 @@ def compare_data(df, df_processed, sensors, idx=range(30000, 30200), plotname="p
 
     fig.tight_layout(rect=(0, 0.05, 1, 1))
     fig.savefig(f"./data/plot/{plotname}.png", dpi=200)
+
     plt.close(fig)
     return fig, axes
 
@@ -165,4 +166,6 @@ def compare_data_pca(df, df_processed, sensors, n_comp,
     fig.savefig(f"./data/plot/{plotname}.png", dpi=200)
 
     axes_dict = {"sensors": axes_sensors, "pca": axes_pca}
+
+    plt.close(fig)
     return fig, axes_dict
