@@ -46,6 +46,7 @@ def read_mat_file(path, label=None):
             df["label"] = label
         return df
     
+    
 def compare_data(df, df_processed, sensors, idx=range(2000, 2200), plotname="plot",
                  nrows=5, ncols=3, figsize=(14, 7)):
     cols = [c for c in sensors if c in df.columns and c in df_processed.columns]
@@ -92,7 +93,7 @@ def compare_data(df, df_processed, sensors, idx=range(2000, 2200), plotname="plo
 
 
 def compare_data_pca(df, df_processed, sensors, n_comp,
-                     idx=range(0, 1000), plotname="plot",
+                     idx=range(0, 200), plotname="plot",
                      nrows_sensors=3, ncols_sensors=3,
                      nrows_pca=2, ncols_pca=3,
                      figsize=None,

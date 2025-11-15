@@ -3,6 +3,8 @@ import pandas as pd
 from sklearn.decomposition import PCA, KernelPCA
 from scipy.signal import butter, sosfiltfilt
 
+from config import CFG
+
 
 def detect_outliers(x, k=1.5):
     q1 = np.percentile(x, 25)
@@ -135,9 +137,14 @@ def moving_average_filter_dataframe(
     return out
 
 
+def apply_pca_safe(df, sensors, feature_selection, n_components_requested=4, pca_map=None):
+    # split columns into 'sensors' and ("Time" and "label")
+    sensors_df = df[sensors]
+    other_df = df.drop(columns=sensors)
 
-def apply_pca_safe(df, sensors, feature_selection, n_components_requested=4, label_str=None, pca_map=None):
-    X = df[sensors].values
+    label_str = df["label"].iloc[0]
+
+    X = sensors_df.values
     X = np.asarray(X)
 
     n_samples, n_features = X.shape
@@ -167,8 +174,8 @@ def apply_pca_safe(df, sensors, feature_selection, n_components_requested=4, lab
 
         elif feature_selection == 'kernelpca':
             # print("Using KernelPCA with RBF kernel.")
-            idx = np.random.choice(X.shape[0], 3000, replace=False) # only choose 3000 samples to fit to avoid memory issue
-            pca = KernelPCA(n_components=n_comp, kernel='rbf', gamma=0.1) # hyperparameter kernel, gamma can be tuned
+            idx = np.random.choice(X.shape[0], CFG.NB_SAMPLES_KPCA, replace=False) # only choose NB_SAMPLES_KPCA samples to fit to avoid memory issue
+            pca = KernelPCA(n_components=n_comp, kernel=CFG.KERNEL_KPCA, gamma=CFG.GAMMA_KPCA)
             pca.fit(X[idx])
             Xp = pca.transform(X)
 
@@ -183,19 +190,33 @@ def apply_pca_safe(df, sensors, feature_selection, n_components_requested=4, lab
     pca_cols = [f"PCA_{i+1}" for i in range(n_comp)]
     Xp_df = pd.DataFrame(Xp, columns=pca_cols, index=df.index)
 
-    return Xp_df, pca, n_comp
+    result_df = pd.concat([other_df, Xp_df], axis=1)
+
+    return result_df, pca, n_comp
 
 
 def sliding_windows(arr, window_len, stride=None):
-
+    # ----------------------------------------------
+    # Parse input based on its type:
+    # If DataFrame → extract columns; drop 'label' and 'Time'.
+    # If ndarray → last column = label, others = features.
+    # ----------------------------------------------
     if hasattr(arr, "columns") and hasattr(arr, "to_numpy") and "label" in getattr(arr, "columns", []):
+        # Identify and drop non-feature columns (supervised signals)
         drop_cols = [c for c in ["label", "Time"] if c in arr.columns]
+
+        # Extract labels as numpy
         labels_seq = arr["label"].to_numpy()
+
+        # Convert feature columns to numpy array
         feats = arr.drop(columns=drop_cols).to_numpy()
+
     else:
         a = np.asarray(arr)
         if a.ndim < 2:
             raise ValueError("ndarray must have at least 2 dimensions")
+
+        # Last column = label, the rest = features
         labels_seq = a[..., -1]
         feats = a[..., :-1]
 
@@ -203,16 +224,24 @@ def sliding_windows(arr, window_len, stride=None):
     labels_seq = np.asarray(labels_seq)
 
     n = feats.shape[0]
-    if stride is None:
-        stride = max(1, window_len // 2)
 
+    # ----------------------------------------------
+    # If window_len > available samples → return empty arrays
+    # ----------------------------------------------
     if window_len > n:
         empty_windows = np.empty((0, window_len) + feats.shape[1:], dtype=feats.dtype)
         empty_labels = np.empty((0,) + labels_seq.shape[1:], dtype=labels_seq.dtype)
         return empty_windows, empty_labels
 
+    # ----------------------------------------------
+    # Compute all window starting indices
+    # ----------------------------------------------
     starts = np.arange(0, n - window_len + 1, stride)
 
+    # ----------------------------------------------
+    # Collect windows and corresponding labels
+    # labels[s] = label at the start of each window
+    # ----------------------------------------------
     windows = np.stack([feats[s:s + window_len] for s in starts], axis=0)
     labels = np.stack([labels_seq[s] for s in starts], axis=0)
 
