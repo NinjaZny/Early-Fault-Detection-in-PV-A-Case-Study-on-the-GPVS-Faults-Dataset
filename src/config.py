@@ -10,7 +10,7 @@ class CFG:
     # outlier removal
     OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
     NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
-    LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
+    LOWPASS_FILTER = 'none' # 'none', 'butterworth', 'moving_average'
     FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
 
     # split seed
