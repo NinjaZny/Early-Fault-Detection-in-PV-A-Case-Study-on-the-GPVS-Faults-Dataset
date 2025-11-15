@@ -14,7 +14,7 @@ from sklearn.model_selection import KFold
 # ==========================
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-MAX_EPOCHS = 200              # Max number of epochs during each training run
+MAX_EPOCHS = 400              # Max number of epochs during each training run
 EARLY_STOPPING_PATIENCE = 15  # Stop training if validation loss doesn't improve for this many epochs
 K_FOLDS = 3                   # K-fold cross validation
 
@@ -22,10 +22,10 @@ K_FOLDS = 3                   # K-fold cross validation
 # Note: invalid structures (enc1_dim < enc2_dim or enc2_dim < latent_dim)
 # will be filtered out later.
 HYPERPARAM_GRID = {
-    "enc1_dim":   [32, 64, 128],
-    "enc2_dim":   [16, 32, 64],
-    "latent_dim": [8, 16, 32],
-    "learning_rate": [1e-3, 5e-4],
+    "enc1_dim":   [128],
+    "enc2_dim":   [64],
+    "latent_dim": [8],
+    "learning_rate": [1e-3],
     "batch_size": [64]
 }
 

@@ -1,0 +1,3 @@
+enc1_dim,enc2_dim,latent_dim,learning_rate,batch_size,mean_val_loss
+128,64,8,0.001,64,7276.027208116319
+128,64,32,0.001,64,7281.825520833333

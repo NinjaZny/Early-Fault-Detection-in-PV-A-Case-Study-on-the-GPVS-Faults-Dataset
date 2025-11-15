@@ -5,7 +5,7 @@ import torch
 class CFG:
 
     # preprocess
-    DROP_HEAD_SECONDS = 6.7
+    DROP_HEAD_SECONDS = 0.5
 
     # outlier removal
     OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
