@@ -11,6 +11,9 @@ import seaborn as sns
 import utils
 import preprocess_methods
 
+
+DROP_HEAD_SECONDS = 6.7
+
 OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
 NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
@@ -119,7 +122,11 @@ def preprocess_data(df, columns, sensors,
                     feature_selection = FEATURE_SELECTION,
                     pca_map = None
                     ):
-    df_corrected = df.copy()
+    
+    df_corrected = df[df["Time"] >= DROP_HEAD_SECONDS]
+    df_corrected = df_corrected.reset_index(drop=True) # reset index to [1,2,3...], instead of the index after "Time" = 6.7
+    print(f"Nb of rows after dropping : {len(df_corrected)}")
+    print(f"Nb of rows dropped : {len(df) - len(df_corrected)}")
     
     print(f"Starting preprocessing: {df['label'][0]}")
 

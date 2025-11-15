@@ -46,7 +46,7 @@ def read_mat_file(path, label=None):
             df["label"] = label
         return df
     
-def compare_data(df, df_processed, sensors, idx=range(30000, 30200), plotname="plot",
+def compare_data(df, df_processed, sensors, idx=range(2000, 2200), plotname="plot",
                  nrows=5, ncols=3, figsize=(14, 7)):
     cols = [c for c in sensors if c in df.columns and c in df_processed.columns]
     if not cols:
