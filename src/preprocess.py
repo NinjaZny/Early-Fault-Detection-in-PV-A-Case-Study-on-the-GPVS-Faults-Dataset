@@ -87,10 +87,12 @@ def save_processed_dataset(X: np.ndarray, Y: np.ndarray, label_str: str,
 def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=None):    
     print(f"Starting preprocessing: {df['label'][0]}")
 
-    df_corrected = df[df["Time"] >= CFG.DROP_HEAD_SECONDS]
-    df_corrected = df_corrected.reset_index(drop=True) # reset index to [1,2,3...], instead of the index after "Time" = 6.7
-    print(f"Nb of rows after dropping : {len(df_corrected)}")
-    print(f"Nb of rows dropped : {len(df) - len(df_corrected)}")
+    df_skipped = df[df["Time"] >= CFG.DROP_HEAD_SECONDS]
+    df_skipped = df_skipped.reset_index(drop=True) # reset index to [1,2,3...], instead of the index after "Time" = 6.7
+    print(f"Nb of rows after dropping : {len(df_skipped)}")
+    print(f"Nb of rows dropped : {len(df) - len(df_skipped)}")
+
+    df_corrected = df_skipped.copy()
     
     # Outlier removal
     if outlier_method == 'IQR':
@@ -102,7 +104,7 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
         pass
     else:
         raise ValueError(f"Unknown outlier method: {outlier_method}")
-    utils.compare_data(df, df_corrected, sensors, plotname = f"oulier-removed_{df['label'][0]}")
+    utils.compare_data(df_skipped, df_corrected, sensors, plotname = f"oulier-removed_{df['label'][0]}")
 
     # Normalization
     if normalize_method == 'zscore':
@@ -115,7 +117,7 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
         df_normalized = df_corrected
     else:
         raise ValueError(f"Unknown normalization method: {normalize_method}")
-    utils.compare_data(df, df_normalized, sensors, plotname = f"normalized_{df['label'][0]}")
+    utils.compare_data(df_skipped, df_normalized, sensors, plotname = f"normalized_{df['label'][0]}")
     
     # Low-pass filtering
     if lowpass_filter == 'butterworth':
@@ -126,12 +128,12 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
         df_filtered = df_normalized
     else:
         raise ValueError(f"Unknown low-pass filter method: {lowpass_filter}")
-    utils.compare_data(df, df_filtered, sensors, plotname = f"filtered_{df['label'][0]}")
+    utils.compare_data(df_skipped, df_filtered, sensors, plotname = f"filtered_{df['label'][0]}")
 
     # Feature selection
     if feature_selection == 'pca' or feature_selection == 'robustpca' or feature_selection == 'kernelpca':
         df_extracted, pca, n_comp = preprocess_methods.apply_pca_safe(df_filtered, sensors, feature_selection, n_components_requested=CFG.PCA_COMPONENTS, pca_map=pca_map)
-        utils.compare_data_pca(df, df_extracted, sensors, n_comp, plotname = f"feature-selection_{df['label'][0]}")
+        utils.compare_data_pca(df_skipped, df_extracted, sensors, n_comp, plotname = f"feature-selection_{df['label'][0]}")
     elif feature_selection == 'none':
         df_extracted = df_filtered
         pca = None
