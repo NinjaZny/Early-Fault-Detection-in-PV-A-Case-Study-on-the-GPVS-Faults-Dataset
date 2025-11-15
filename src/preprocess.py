@@ -11,7 +11,7 @@ import seaborn as sns
 import utils
 import preprocess_methods
 
-OUTLIER_METHOD = 'none' # options: 'none', 'IQR'
+OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
 NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
 LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
 FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
@@ -28,7 +28,7 @@ MA_WINDOW = 7
 PCA_COMPONENTS = 8
 
 WINDOW_LEN = 200
-STRIDE = 15
+STRIDE = 100
 
 
 def _save_or_append(array: np.ndarray, path: str):
@@ -175,10 +175,10 @@ def preprocess_data(df, columns, sensors,
         raise ValueError(f"Unknown feature selection method: {feature_selection}")
 
     # Ensure all original sensor columns are present in processed DataFrame
-    if feature_selection == 'none':
-        for col in sensors:
-            if col in df.columns:
-                df_extracted[col] = df[col]
+    #if feature_selection == 'none':
+    #    for col in sensors:
+    #        if col in df.columns:
+    #            df_extracted[col] = df[col]
 
     # Sliding window
     X, Y = preprocess_methods.sliding_windows(df_extracted, window_len=WINDOW_LEN, stride=STRIDE)
@@ -187,7 +187,7 @@ def preprocess_data(df, columns, sensors,
 
 
 def preprocess_all_data():
-    dataset_folder = '../data/GPVS-Faults'
+    dataset_folder = 'data/GPVS-Faults'
     processed_data_folder = 'data/processed'
     plot_folder = 'data/plot'
 
