@@ -9,7 +9,7 @@ import seaborn as sns
 from pandas.plotting import parallel_coordinates
 
 RESULTS_DIR = "results"
-ARTIFACTS_DIR = "artifacts"
+ARTIFACTS_DIR = "artifacts_new_version"
 
 
 def find_pipelines():
@@ -105,7 +105,25 @@ def plot_cv_summary(df: pd.DataFrame, pipeline: str, out_dir: str):
             if maxv > minv:
                 pc_df[c] = (pc_df[c] - minv) / (maxv - minv)
         # create loss group
-        pc_df["loss_group"] = pd.qcut(pc_df["mean_val_loss"], q=3, labels=["low", "mid", "high"])
+        try:
+            pc_df["loss_group"] = pd.qcut(pc_df["mean_val_loss"], q=3, labels=["low", "mid", "high"])
+        except ValueError:
+            # qcut can fail when values are identical (duplicate bin edges). Fall back to safer grouping.
+            n_unique = pc_df["mean_val_loss"].nunique()
+            if n_unique == 1:
+                # all values the same -> single neutral group
+                pc_df["loss_group"] = "mid"
+            else:
+                # try fewer bins equal to unique values (up to 3)
+                bins = min(3, n_unique)
+                labels = ["low", "mid", "high"][:bins]
+                try:
+                    pc_df["loss_group"] = pd.qcut(pc_df["mean_val_loss"], q=bins, labels=labels, duplicates="drop")
+                except Exception:
+                    # final fallback: split by median into low/high
+                    median = pc_df["mean_val_loss"].median()
+                    pc_df["loss_group"] = pc_df["mean_val_loss"].apply(lambda v: "low" if v <= median else "high")
+
         plt.figure(figsize=(9, 5))
         parallel_coordinates(pc_df[[*feature_cols, "loss_group"]], class_column="loss_group", colormap=plt.get_cmap("Set1"))
         plt.title(f"Parallel coordinates (hyperparams) — {pipeline}")
@@ -152,6 +170,11 @@ def plot_comparison_across_pipelines(pipelines: list, out_dir: str):
         return
 
     comp_df = pd.DataFrame(bests).sort_values("best_mean_val_loss")
+    # ensure numeric and drop invalid entries
+    comp_df["best_mean_val_loss"] = pd.to_numeric(comp_df["best_mean_val_loss"], errors="coerce")
+    comp_df = comp_df.dropna()
+
+    # Linear-scale barplot (original view)
     plt.figure(figsize=(10, max(4, len(comp_df) * 0.25)))
     sns.barplot(data=comp_df, x="best_mean_val_loss", y="pipeline", palette="coolwarm")
     plt.title("Best mean_val_loss per pipeline")
@@ -163,9 +186,23 @@ def plot_comparison_across_pipelines(pipelines: list, out_dir: str):
     plt.close()
     print(f"Saved cross-pipeline comparison -> {cmp_path}")
 
-    # Histogram of best scores across pipelines
+    # Log-scale barplot so small values are visible alongside large outliers
+    if not comp_df["best_mean_val_loss"].le(0).all():
+        plt.figure(figsize=(10, max(4, len(comp_df) * 0.25)))
+        sns.barplot(data=comp_df, x="best_mean_val_loss", y="pipeline", palette="coolwarm")
+        plt.xscale("log")
+        plt.title("Best mean_val_loss per pipeline (log scale)")
+        plt.xlabel("best mean_val_loss (log scale)")
+        plt.ylabel("pipeline")
+        cmp_log_path = os.path.join(out_dir, "cross_pipeline_best_mean_val_loss_log.png")
+        plt.tight_layout()
+        plt.savefig(cmp_log_path)
+        plt.close()
+        print(f"Saved cross-pipeline comparison (log) -> {cmp_log_path}")
+
+    # Histogram of best scores across pipelines (linear)
     plt.figure(figsize=(6, 4))
-    sns.histplot(all_best_values, bins=20, kde=True)
+    sns.histplot(comp_df["best_mean_val_loss"].values, bins=20, kde=True)
     plt.title("Distribution of best mean_val_loss across pipelines")
     plt.xlabel("best mean_val_loss")
     path = os.path.join(out_dir, "cross_pipeline_best_distribution.png")
@@ -173,6 +210,19 @@ def plot_comparison_across_pipelines(pipelines: list, out_dir: str):
     plt.savefig(path)
     plt.close()
     print(f"Saved cross-pipeline best distribution -> {path}")
+
+    # Histogram (log scale)
+    if not comp_df["best_mean_val_loss"].le(0).all():
+        plt.figure(figsize=(6, 4))
+        sns.histplot(comp_df["best_mean_val_loss"].values, bins=40, kde=True)
+        plt.xscale("log")
+        plt.title("Distribution of best mean_val_loss across pipelines (log scale)")
+        plt.xlabel("best mean_val_loss (log scale)")
+        path_log = os.path.join(out_dir, "cross_pipeline_best_distribution_log.png")
+        plt.tight_layout()
+        plt.savefig(path_log)
+        plt.close()
+        print(f"Saved cross-pipeline best distribution (log) -> {path_log}")
 
 
 
