@@ -48,7 +48,7 @@ def read_mat_file(path, label=None):
     
     
 def compare_data(df, df_processed, sensors, idx=range(2000, 2200), plotname="plot",
-                 nrows=5, ncols=3, figsize=(14, 7)):
+                 nrows=13, ncols=1, figsize=(14, 40)):
     cols = [c for c in sensors if c in df.columns and c in df_processed.columns]
     if not cols:
         raise ValueError("No common sensor columns found for comparison.")

@@ -87,8 +87,22 @@ def save_processed_dataset(X: np.ndarray, Y: np.ndarray, label_str: str,
 def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=None):    
     print(f"Starting preprocessing: {df['label'][0]}")
 
-    df_skipped = df[df["Time"] >= CFG.DROP_HEAD_SECONDS]
-    df_skipped = df_skipped.reset_index(drop=True) # reset index to [1,2,3...], instead of the index after "Time" = 6.7
+    label = str(df['label'].iloc[0])
+
+    suffix = label[-1]
+    idx_str = label[-2]
+    i = int(idx_str)
+
+    if suffix == 'L':
+        drop_head_seconds = CFG.Init_Trimming_list_L[i]
+    elif suffix == 'M':
+        drop_head_seconds = CFG.Init_Trimming_list_M[i]
+    else:
+        raise ValueError(f"Error file name")
+
+    df_skipped = df[df["Time"] >= drop_head_seconds]
+    df_skipped = df_skipped.reset_index(drop=True)
+
     print(f"Nb of rows after dropping : {len(df_skipped)}")
     print(f"Nb of rows dropped : {len(df) - len(df_skipped)}")
 
@@ -104,7 +118,7 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
         pass
     else:
         raise ValueError(f"Unknown outlier method: {outlier_method}")
-    utils.compare_data(df_skipped, df_corrected, sensors, plotname = f"oulier-removed_{df['label'][0]}")
+    utils.compare_data(df_skipped, df_corrected, sensors, idx = range(0, len(df_skipped)), plotname = f"oulier-removed_{df['label'][0]}")
 
     # Normalization
     if normalize_method == 'zscore':
@@ -115,9 +129,9 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
         df_normalized = preprocess_methods.robust_dataframe(df_corrected, sensors)
     elif normalize_method == 'none':
         df_normalized = df_corrected
-    else:
+    else: 
         raise ValueError(f"Unknown normalization method: {normalize_method}")
-    utils.compare_data(df_skipped, df_normalized, sensors, plotname = f"normalized_{df['label'][0]}")
+    utils.compare_data(df_skipped, df_normalized, sensors, idx = range(0, len(df_skipped)), plotname = f"normalized_{df['label'][0]}")
     
     # Low-pass filtering
     if lowpass_filter == 'butterworth':
@@ -128,7 +142,7 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
         df_filtered = df_normalized
     else:
         raise ValueError(f"Unknown low-pass filter method: {lowpass_filter}")
-    utils.compare_data(df_skipped, df_filtered, sensors, plotname = f"filtered_{df['label'][0]}")
+    utils.compare_data(df_skipped, df_filtered, sensors, idx = range(0, len(df_skipped)), plotname = f"filtered_{df['label'][0]}")
 
     # Feature selection
     if feature_selection == 'pca' or feature_selection == 'robustpca' or feature_selection == 'kernelpca':
@@ -193,6 +207,8 @@ def preprocess_all_data(outlier_method, normalize_method, lowpass_filter, featur
     # then run all the fault data -> just applying the pca matrix
     for fn in filenames:
         label_str = fn[:3]
+        # if label_str.startswith("F0") or label_str.startswith("F3") or label_str.startswith("F4") or label_str.startswith("F5") or label_str.startswith("F6") or label_str.startswith("F7"):
+        # if label_str.startswith("F0") or label_str.startswith("F3"):
         if label_str.startswith("F0"):
             continue
         print(f"Processing fault file: {fn}")

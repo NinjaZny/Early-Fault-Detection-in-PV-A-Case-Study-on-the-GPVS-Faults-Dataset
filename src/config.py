@@ -5,19 +5,21 @@ import torch
 class CFG:
 
     # preprocess
-    DROP_HEAD_SECONDS = 0.5
+    # head_time before introducing faults
+    Init_Trimming_list_L = [0.5, 9.2, 9.0, 9.0, 9.0, 7.5, 9.0, 9.0]
+    Init_Trimming_list_M = [0.5, 8.7, 9.0, 6.737, 9.0, 7.5, 9.0, 9.0]
 
     # outlier removal
-    OUTLIER_METHOD = 'IQR' # options: 'none', 'IQR'
+    OUTLIER_METHOD = 'none' # options: 'none', 'IQR'
     NORMALIZE_METHOD = 'minmax' # 'none', 'zscore', 'minmax', 'robust'
-    LOWPASS_FILTER = 'none' # 'none', 'butterworth', 'moving_average'
+    LOWPASS_FILTER = 'butterworth' # 'none', 'butterworth', 'moving_average'
     FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
 
     # split seed
     RANDOM_SEED = 42 
 
     # IQR window for outlier removal
-    OUTLIER_WINDOW = 11
+    OUTLIER_WINDOW = 3
 
     # lowpass filter
     CUTOFF = 300
