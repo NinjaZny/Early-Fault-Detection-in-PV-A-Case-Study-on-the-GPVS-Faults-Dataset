@@ -84,13 +84,13 @@ def save_processed_dataset(X: np.ndarray, Y: np.ndarray, label_str: str,
         print(f"[save] FAULT {label_str} ({group}): {X.shape} → {os.path.basename(x_path)}")
 
 
-def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=None):    
+def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=None, norm_stat={}):    
     print(f"Starting preprocessing: {df['label'][0]}")
 
     label = str(df['label'].iloc[0])
 
-    suffix = label[-1]
-    idx_str = label[-2]
+    suffix = label[-1] # L/M
+    idx_str = label[-2] # 0-7
     i = int(idx_str)
 
     if suffix == 'L':
@@ -121,17 +121,40 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
     utils.compare_data(df_skipped, df_corrected, sensors, idx = range(0, len(df_skipped)), plotname = f"oulier-removed_{df['label'][0]}")
 
     # Normalization
-    if normalize_method == 'zscore':
-        df_normalized = preprocess_methods.zscore_dataframe(df_corrected, sensors)
-    elif normalize_method == 'minmax':
-        df_normalized = preprocess_methods.minmax_dataframe(df_corrected, sensors)
-    elif normalize_method == 'robust':
-        df_normalized = preprocess_methods.robust_dataframe(df_corrected, sensors)
-    elif normalize_method == 'none':
-        df_normalized = df_corrected
-    else: 
-        raise ValueError(f"Unknown normalization method: {normalize_method}")
-    utils.compare_data(df_skipped, df_normalized, sensors, idx = range(0, len(df_skipped)), plotname = f"normalized_{df['label'][0]}")
+    if idx_str == '0':
+        sub = df_corrected[sensors]
+        if normalize_method == 'zscore':
+            num = sub.mean()
+            den = sub.std(ddof=0).replace(0, 1.0)
+        elif normalize_method == 'minmax':
+            vmin = sub.min()
+            vmax = sub.max()
+            num = vmin
+            den = (vmax - vmin).replace(0, 1.0)
+        elif normalize_method == 'robust':
+            median = sub.median()
+            q1 = sub.quantile(0.25)
+            q3 = sub.quantile(0.75)
+            iqr = (q3 - q1).replace(0, 1.0)
+            num = median
+            den = iqr
+        elif normalize_method == 'none':
+            zeros = sub.iloc[0:1].copy().iloc[0] * 0
+            num = zeros
+            den = zeros
+        else:
+            raise ValueError(f"Unknown normalization method: {normalize_method}")
+        norm_stat = {"numerator": num, "denominator": den}
+        print(f"[INFO] Saved norm params for suffix={suffix}, method={normalize_method}")
+        df_normalized = preprocess_methods.apply_norm_with_params(df_corrected, sensors, normalize_method, norm_stat)
+        
+    else:
+        if normalize_method == 'none':
+            df_normalized = df_corrected
+        else:
+            df_normalized = preprocess_methods.apply_norm_with_params(df_corrected, sensors, normalize_method, norm_stat)
+    utils.compare_data(df_skipped, df_normalized, sensors, idx=range(0, len(df_skipped)),plotname=f"normalized_{df['label'][0]}")
+
     
     # Low-pass filtering
     if lowpass_filter == 'butterworth':
@@ -157,7 +180,7 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
     # Sliding window
     X, Y = preprocess_methods.sliding_windows(df_extracted, window_len=CFG.WINDOW_LEN, stride=CFG.STRIDE)
     
-    return X, Y, pca
+    return X, Y, pca, norm_stat
 
 
 def preprocess_all_data(outlier_method, normalize_method, lowpass_filter, feature_selection):
@@ -186,6 +209,7 @@ def preprocess_all_data(outlier_method, normalize_method, lowpass_filter, featur
     le.fit(class_names)
 
     pca_map = {} # to save pca matrix calculated by F0
+    norm_stats = {}
 
     # first run the preprocessing of F0 data -> calculating pca matrix
     for fn in filenames:
@@ -197,10 +221,11 @@ def preprocess_all_data(outlier_method, normalize_method, lowpass_filter, featur
         df = utils.read_mat_file(path, label=label_str)
 
         sensors = [c for c in CFG.COLUMNS if c in df.columns and c != 'Time' and c != 'label']
-        X, Y, pca = preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=None)
+        X, Y, pca, norm_stat = preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=None, norm_stat={})
 
         key = "LPPT" if label_str.endswith("L") else "MPPT"
         pca_map[key] = pca  # store PCA model for later
+        norm_stats[key] = norm_stat
 
         save_processed_dataset(X, Y, label_str)
 
@@ -216,7 +241,7 @@ def preprocess_all_data(outlier_method, normalize_method, lowpass_filter, featur
         df = utils.read_mat_file(path, label=label_str)
         sensors = [c for c in CFG.COLUMNS if c in df.columns and c != 'Time' and c != 'label']
         key = "LPPT" if label_str.endswith("L") else "MPPT"
-        X, Y, _ = preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=pca_map.get(key))
+        X, Y, _, __ = preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filter, feature_selection, pca_map=pca_map.get(key), norm_stat=norm_stats[key])
         save_processed_dataset(X, Y, label_str)
 
     for f in os.listdir(processed_data_folder):

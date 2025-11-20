@@ -80,6 +80,20 @@ def robust_dataframe(df, cols):
     return out
 
 
+def apply_norm_with_params(df, sensors, normalize_method, norm_params):
+    if normalize_method == 'none':
+        return df
+
+    df_norm = df.copy()
+    sub = df_norm[sensors]
+
+    num = norm_params["numerator"]
+    den = norm_params["denominator"]
+
+    df_norm[sensors] = (sub - num) / den
+    return df_norm
+
+
 def butterworth_lowpass_filter_dataframe(
     df, 
     sensors, 
