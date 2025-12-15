@@ -13,8 +13,8 @@ if __name__ == "__main__":
     # You can ignore the training since the models has been trained with all Pipelines,
     # but always run the Preprocess.py before evaluation
     preprocess.preprocess_all_data(CFG.OUTLIER_METHOD, CFG.NORMALIZE_METHOD, CFG.LOWPASS_FILTER, CFG.FEATURE_SELECTION)
-    train_autoencoder.train_lstm_ae_with_cv(pipeline)
-    evaluation1.evaluate_binary_detection(pipeline)
+    # train_autoencoder.train_lstm_ae_with_cv(pipeline)
+    # evaluation1.evaluate_binary_detection(pipeline)
     #evaluate.evaluate_pipeline(pipeline)
 
 

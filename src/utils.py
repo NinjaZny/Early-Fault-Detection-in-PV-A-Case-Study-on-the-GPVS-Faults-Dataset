@@ -170,3 +170,4 @@ def compare_data_pca(df, df_processed, sensors, n_comp,
 
     plt.close(fig)
     return fig, axes_dict
+

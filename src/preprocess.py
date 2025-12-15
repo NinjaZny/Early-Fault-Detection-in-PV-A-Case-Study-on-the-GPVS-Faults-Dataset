@@ -119,6 +119,7 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
     else:
         raise ValueError(f"Unknown outlier method: {outlier_method}")
     utils.compare_data(df_skipped, df_corrected, sensors, idx = range(0, len(df_skipped)), plotname = f"oulier-removed_{df['label'][0]}")
+    # utils.compare_data(df_skipped, df_corrected, sensors, idx = range(14200, 14400), plotname = f"oulier-removed_{df['label'][0]}")
 
     # Normalization
     if idx_str == '0':
@@ -154,6 +155,7 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
         else:
             df_normalized = preprocess_methods.apply_norm_with_params(df_corrected, sensors, normalize_method, norm_stat)
     utils.compare_data(df_skipped, df_normalized, sensors, idx=range(0, len(df_skipped)),plotname=f"normalized_{df['label'][0]}")
+    # utils.compare_data(df_corrected, df_normalized, sensors, idx=range(14200, 14400),plotname=f"normalized_{df['label'][0]}")
 
     
     # Low-pass filtering
@@ -166,11 +168,13 @@ def preprocess_data(df, sensors, outlier_method, normalize_method, lowpass_filte
     else:
         raise ValueError(f"Unknown low-pass filter method: {lowpass_filter}")
     utils.compare_data(df_skipped, df_filtered, sensors, idx = range(0, len(df_skipped)), plotname = f"filtered_{df['label'][0]}")
+    # utils.compare_data(df_normalized, df_filtered, sensors, idx = range(14200, 14400), plotname = f"filtered_{df['label'][0]}")
 
     # Feature selection
     if feature_selection == 'pca' or feature_selection == 'robustpca' or feature_selection == 'kernelpca':
         df_extracted, pca, n_comp = preprocess_methods.apply_pca_safe(df_filtered, sensors, feature_selection, n_components_requested=CFG.PCA_COMPONENTS, pca_map=pca_map)
-        utils.compare_data_pca(df_skipped, df_extracted, sensors, n_comp, plotname = f"feature-selection_{df['label'][0]}")
+        # utils.compare_data_pca(df_skipped, df_extracted, sensors, n_comp, plotname = f"feature-selection_{df['label'][0]}")
+        # utils.compare_data_pca(df_skipped, df_extracted, sensors, n_comp, plotname = f"feature-selection_{df['label'][0]}")
     elif feature_selection == 'none':
         df_extracted = df_filtered
         pca = None
@@ -202,6 +206,7 @@ def preprocess_all_data(outlier_method, normalize_method, lowpass_filter, featur
             os.remove(fp)
 
     filenames = sorted([f for f in os.listdir(dataset_folder) if f.endswith('.mat')])
+    print(f"Found data files: {filenames}")
 
     # create class_names, like "F0L"
     class_names = [fn[:3] for fn in filenames]
