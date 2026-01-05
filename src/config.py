@@ -7,8 +7,9 @@ class CFG:
     # preprocess
     # head_time before introducing faults
     Init_Trimming_list_L = [0.5, 9.2, 9.0, 9.0, 9.0, 7.5, 9.0, 9.0]
-    # Init_Trimming_list_L = [0, 0, 0, 0, 0, 0, 0, 0]
+    # Init_Trimming_list_L = [1, 1, 1, 1, 1, 1, 1, 1]
     Init_Trimming_list_M = [0.5, 8.7, 9.0, 6.737, 9.0, 7.5, 9.0, 9.0]
+    # Init_Trimming_list_M = [1, 1, 1, 1, 1, 1, 1, 1]
 
     # outlier removal
     OUTLIER_METHOD = 'none' # options: 'none', 'IQR'
@@ -17,7 +18,7 @@ class CFG:
     FEATURE_SELECTION = 'none' # 'none', 'pca', 'robustpca', 'kernelpca'
 
     # split seed
-    RANDOM_SEED = 42 
+    RANDOM_SEED = 42
 
     # IQR window for outlier removal
     OUTLIER_WINDOW = 3
