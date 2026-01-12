@@ -4,7 +4,7 @@ import torch
 
 class CFG:
 
-    # preprocess
+    # preprocess   
     # head_time before introducing faults
     Init_Trimming_list_L = [0.5, 9.2, 9.0, 9.0, 9.0, 7.5, 9.0, 9.0]
     # Init_Trimming_list_L = [0, 0, 0, 0, 0, 0, 0, 0]
